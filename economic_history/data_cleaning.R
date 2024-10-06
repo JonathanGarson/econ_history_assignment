@@ -5,4 +5,14 @@ gc()
 
 library(arrow)
 library(data.table)
+library(readxl)
+
+# Import Data -------------------------------------------------------------
+
+cars = read_excel("../StateNewCarRegistrations.xlsx")
+income = read_excel("../stock_income.xlsx")
+
+# Data Cleaning -----------------------------------------------------------
+
+
 
