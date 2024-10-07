@@ -7,14 +7,47 @@ library(arrow)
 library(data.table)
 library(fixest)
 library(ggplot2)
+library(dplyr)
 
 # Import Data -------------------------------------------------------------
 cars = read_parquet('../data/final/clean_data.parquet')
+list_states = fread('../data/final/exposed_state.csv')
 
 # Regression --------------------------------------------------------------
 
-reg_1 = feols(log(cars_sales) ~ i(exposure, post_crash), fixef = c("year", "state"), data = cars)
+reg_1 = feols(log(cars_sales) ~ i(exposure, post_crash), fixef = c("month","year" ,"state"), data = cars)
 summary(reg_1)
+
+retrieve_result = function(reg){
+  summary = summary(reg)
+  tables = data.frame(
+    exposure = gsub("[^0-9.]", "",, x = names(sum$coefficients)),
+    estimate = summary$coefficients,
+    sd = summary$se
+  )
+}
+
+result = retrieve_result(reg_1)
+result = result %>% 
+  mutate(estimate_low = estimate - 1.96*sd,
+         estimate_high = estimate + 1.96*sd)
+result = merge(result, list_states, by = "exposure", all.x = T)
+setorderv(result, cols = c("exposure"))
+
+ggplot(result, aes(x = estimate, y = state)) +  
+  geom_pointrange(aes(xmin = estimate_low, xmax = estimate_high), color = "blue") +
+  geom_vline(xintercept = 0, linetype = "dashed", color = "red") + 
+  labs(
+    title = "Effect of the 1929 Krach on (log) Car Sales by U.S. State",
+    x = "Log(CarSales)",
+    y = "State",
+    caption = "This figure shows the effect of the 1929 financial krach on car sales in the U.S.\nThe states are presented in increasing order of exposure to the loss of dividend revenue."
+  ) +
+  theme_minimal() +
+  theme(
+    plot.caption = element_text(hjust = 0, size = 10, face = "italic")  # Right-align and italicize caption
+  )
+
 
 
 # having fun --------------------------------------------------------------
